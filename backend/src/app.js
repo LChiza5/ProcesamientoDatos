@@ -1,5 +1,6 @@
-import express from "express"
-import dotenv from "dotenv"
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
@@ -10,8 +11,16 @@ const PORT=process.env.SERVER_PORT;
 
 const app = express();
 
+app.use(cors());
+app.use(express.json());
+
 app.get("/",(req,res) => {
-    res.send(`<h1>${NAME} </h1><p>Version: ${VERSION}</p><p>${DESCRIPTION}`);
+    res.json({
+        name: NAME,
+        version: VERSION,
+        description: DESCRIPTION,
+        port: PORT
+    });
 });
 
 app.listen(4000, () => {
