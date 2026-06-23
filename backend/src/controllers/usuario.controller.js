@@ -1,25 +1,49 @@
-export function agregarUsuario(req, res) {
-    const { nombre, correo, contrasena, confirmacion } = req.body;
+import pool from "../../config/db.js";
 
-    if (!nombre || nombre.trim() === "") {
-        return res.status(400).json({ error: "El nombre es obligatorio" });
-    }
+export async function agregarUsuario(req, res) {
+    try {
+        const { nombre, correo, contrasena, confirmacion } = req.body;
 
-    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!correo || !regexCorreo.test(correo)) {
-        return res.status(400).json({ error: "El correo no tiene un formato válido" });
-    }
+        if (!nombre || nombre.trim() === "") {
+            return res.status(400).json({ error: "El nombre es obligatorio" });
+        }
 
-    const regexContrasena = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!contrasena || !regexContrasena.test(contrasena)) {
-        return res.status(400).json({
-            error: "La contraseña debe tener mínimo 8 caracteres, mayúsculas, minúsculas y números"
+        const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!correo || !regexCorreo.test(correo)) {
+            return res.status(400).json({ error: "El correo no tiene un formato válido" });
+        }
+
+        const regexContrasena = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!contrasena || !regexContrasena.test(contrasena)) {
+            return res.status(400).json({
+                error: "La contraseña debe tener mínimo 8 caracteres, mayúsculas, minúsculas y números"
+            });
+        }
+
+        if (contrasena !== confirmacion) {
+            return res.status(400).json({ error: "La contraseña y la confirmación no coinciden" });
+        }
+
+        const [result] = await pool.execute(
+            `INSERT INTO usuarios
+            (nombre, correo, contrasena)
+            VALUES (?, ?, ?)`,
+            [
+                nombre,
+                correo,
+                contrasena
+            ]
+        );
+        return res.json({
+            id: result.insertID,
+            nombre: nombre,
+            correo: correo,
+            mensaje: "Usuario registrado correctamente"
         });
-    }
 
-    if (contrasena !== confirmacion) {
-        return res.status(400).json({ error: "La contraseña y la confirmación no coinciden" });
-    }
 
-    return res.status(200).json({ mensaje: "Usuario agregado correctamente" });
-}
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error: error.sqlMessage});
+        }
+    }
