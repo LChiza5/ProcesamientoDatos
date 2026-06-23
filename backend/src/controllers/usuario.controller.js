@@ -1,4 +1,5 @@
 import pool from "../../config/db.js";
+import bcrypt from "bcrypt";
 
 export async function agregarUsuario(req, res) {
     try {
@@ -31,7 +32,7 @@ export async function agregarUsuario(req, res) {
             [
                 nombre,
                 correo,
-                contrasena
+                await bcrypt.hash(contrasena,10)
             ]
         );
         return res.json({
