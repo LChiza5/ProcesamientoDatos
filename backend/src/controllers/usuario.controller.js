@@ -32,7 +32,7 @@ export async function agregarUsuario(req, res) {
             [
                 nombre,
                 correo,
-                await bcrypt.hash(contrasena,10)
+                await bcrypt.hash(contrasena, 10)
             ]
         );
         return res.json({
@@ -45,6 +45,120 @@ export async function agregarUsuario(req, res) {
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({error: error.sqlMessage});
-        }
+        return res.status(500).json({ error: error.sqlMessage });
     }
+}
+
+export async function obtenerUsuarios(req, res) {
+    try {
+        const [rows] = await pool.execute(
+            "SELECT id, nombre, correo FROM usuarios"
+        );
+
+        res.json(rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export async function obtenerUsuarioPorId(req, res) {
+    try {
+        const { id } = req.params;
+
+        const [rows] = await pool.execute(
+            "SELECT id, nombre, correo FROM usuarios WHERE id = ?",
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json(rows[0]);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export async function actualizarUsuario(req, res) {
+    try {
+        const { id } = req.params;
+        const { nombre, correo } = req.body;
+
+        if (!nombre || !correo) {
+            return res.status(400).json({ error: "Nombre y correo son obligatorios" });
+        }
+
+        const [result] = await pool.execute(
+            `UPDATE usuarios 
+       SET nombre = ?, correo = ? 
+       WHERE id = ?`,
+            [nombre, correo, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json({
+            mensaje: "Usuario actualizado correctamente"
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export async function eliminarUsuario(req, res) {
+    try {
+        const { id } = req.params;
+
+        const [result] = await pool.execute(
+            "DELETE FROM usuarios WHERE id = ?",
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json({
+            mensaje: "Usuario eliminado correctamente"
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export async function autenticar(req, res) {
+  try {
+    const {correo,contrasena} =req.body;
+
+    const [result] = await pool.execute(
+      `select correo, contrasena from usuarios where correo=?`
+      ,
+      [correo]
+    );
+
+    if (result.length===0 ||
+        !await bcrypt.compare(contrasena, result[0].contrasena)) 
+        return res.status(404).json({ mensaje: "Correo y/o contraseña incorrectos" })
+
+    return res.json(
+        {
+          correo: correo,
+          mensaje: "acceso autorizado"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+}
